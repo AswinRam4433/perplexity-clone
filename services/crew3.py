@@ -49,12 +49,7 @@ class AdvancedResearchSystem:
         self.google_cse_id = google_cse_id or os.getenv('GOOGLE_CSE_ID')
         self.serpapi_key = serpapi_key or os.getenv('SERPAPI_KEY')
 
-        # Initialize LLM
-        # self.mistral_llm = ChatMistralAI(
-        #     model="mistral-large-latest",
-        #     api_key=self.mistral_api_key,
-        #     provider="mistral"  # Specify the LLM provider
-        # )
+
         self.mistral_llm = LLM(
         api_key=self.mistral_api_key,
         model="mistral/mistral-large-latest",
@@ -88,7 +83,9 @@ class AdvancedResearchSystem:
                     'engine': 'google',
                     'q': query,
                     'api_key': self.serpapi_key,
-                    'num': num_results
+                    'num': num_results,
+                    'device': 'desktop',
+                    'lr': 'lang_en'
                 }
                 
                 response = requests.get('https://serpapi.com/search', params=params)
@@ -106,6 +103,8 @@ class AdvancedResearchSystem:
             except Exception as e:
                 logger.error(f"SerpAPI Search error: {e}")
                 return []
+        async def google_search(self, query, num_results=5):
+
 
         async def comprehensive_search(self, query, num_results=5):
             """
@@ -203,7 +202,7 @@ class AdvancedResearchSystem:
         synthesizer = Agent(
             role='Research Synthesizer',
             goal='Create a comprehensive and coherent summary of research findings',
-            backstory='A skilled writer who can transform raw research into a clear, structured narrative',
+            backstory='A skilled writer who can transform raw research findings into a clear and coherent response',
             verbose=True,
             llm=self.mistral_llm
         )
@@ -220,9 +219,9 @@ class AdvancedResearchSystem:
         # Create tasks for CrewAI
         research_task = Task(
             description=f"""Analyze the research materials on the topic: '{query}'
-            Extract key insights, main arguments, and critical information.
-            Identify trends, contradictions, and unique perspectives.
-            Prepare a detailed analysis that highlights the most important findings.""",
+            Extract insights, recent developments and other critical developments.
+            Identify trends, and unique perspectives.
+            Prepare a detailed analysis that highlights the most important findings. Stick to only what has been found""",
             agent=researcher,
             expected_output="A comprehensive analysis with key insights and main points"
         )
@@ -231,7 +230,7 @@ class AdvancedResearchSystem:
             description="""Based on the research analysis, create a cohesive and 
             well-structured summary that presents the findings in a clear, 
             engaging, and informative manner. Ensure the summary is concise 
-            yet captures the depth of the research.""",
+            yet captures the depth of the research while staying true to the findings.""",
             agent=synthesizer,
             expected_output="A polished, synthesized summary of the research findings"
         )
@@ -240,7 +239,7 @@ class AdvancedResearchSystem:
         crew = Crew(
             agents=[researcher, synthesizer],
             tasks=[research_task, synthesis_task],
-            verbose=True  # Changed from 2 to True to resolve Pydantic validation error
+            verbose=True  
         )
 
         # Kickoff the research process
@@ -259,7 +258,7 @@ async def main():
     research_system = AdvancedResearchSystem()
     
     # Conduct research
-    query = "Latest advancements in artificial intelligence"
+    query = "Microsoft Stock Price Current"
     results = await research_system.advanced_research_workflow(query)
     
     # Display results
