@@ -71,9 +71,11 @@ class AdvancedResearchSystem:
         """
         Initialize research system with Mistral API key
         """
+
+        ## initialize Mistral keys
         self.mistral_api_key = mistral_api_key or os.getenv('MISTRAL_API_KEY')
 
-        # Simplified LLM initialization
+        ## initialize LLM
         self.llm = ChatMistralAI(
             api_key=self.mistral_api_key,
             model="mistral-large-latest"
@@ -87,14 +89,13 @@ class AdvancedResearchSystem:
         Simplified research workflow
         """
         try:
-            # Content extraction
             extraction_tasks = [
                 WebScraper.extract_article_content(source) 
                 for source in sources
             ]
             extracted_contents = await asyncio.gather(*extraction_tasks)
             
-            # Filter valid contents
+            ## remove empty results
             valid_contents = [
                 content for content in extracted_contents 
                 if content is not None
@@ -134,6 +135,7 @@ class AdvancedResearchSystem:
 async def main():
     research_system = AdvancedResearchSystem()
     
+    ## give links for scraping directly
     sources = [
         'https://www.theguardian.com/world/2024/dec/08/bashar-al-assad-has-fled-syria-but-where-is-the-former-dictator-now',
         'https://www.cnn.com/2024/12/16/middleeast/syria-bashar-assad-statement-intl/index.html'

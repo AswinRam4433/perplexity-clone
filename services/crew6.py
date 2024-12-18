@@ -107,6 +107,7 @@ class WebScraper:
             
             async with aiohttp.ClientSession() as session:
                 headers = {
+                    ## based on what worked for Postman
                     'Accept':'*/*',
                     'Accept-Encoding':'gzip, deflate, br',
                 }
@@ -150,10 +151,9 @@ class AdvancedResearchSystem:
             serpapi_key (str, optional): SerpAPI key
             debug (bool, optional): Enable debug logging. Defaults to True.
         """
-        # Initialize API keys
         self.mistral_api_key = mistral_api_key or os.getenv('MISTRAL_API_KEY')
         
-        # Initialize search engine
+        # Initialize serpapi keys
         self.search_engine = SearchEngine(serpapi_key)
         
         # Initialize LLM
@@ -178,7 +178,6 @@ class AdvancedResearchSystem:
             Dict: Research results including query, sources, and summary
         """
         try:
-            # 1. Search for relevant sources
             search_results = self.search_engine.search(query, num_sources)
             
             if not search_results:
@@ -188,35 +187,32 @@ class AdvancedResearchSystem:
                     'message': 'No sources found for the given query.'
                 }
             
-            # 2. Extract source URLs
             source_urls = [result['link'] for result in search_results]
             
-            # 3. Content extraction
             extraction_tasks = [
                 WebScraper.extract_article_content(url) 
                 for url in source_urls
             ]
             extracted_contents = await asyncio.gather(*extraction_tasks)
             
-            # 4. Filter valid contents
+            ## remove empty results
             valid_contents = [
                 content for content in extracted_contents 
                 if content is not None
             ]
             
-            # 5. Prepare research context
             research_context = "\n\n".join([
                 f"Source: {content.get('title', 'Untitled')} ({content.get('url', 'No URL')})\n"
                 f"Content: {content.get('text', '')[:1000]}..."
                 for content in valid_contents
             ])
             
-            # 6. Use LLM for synthesis
             messages = [
                 {"role": "system", "content": "You are a senior research analyst. Synthesize the following research context to answer the query precisely and comprehensively. Give the reply as a coherent paragraph"},
                 {"role": "user", "content": f"Query: {query}\n\nResearch Context:\n{research_context}"}
             ]
             
+            ## call LLM for computing answers
             response = self.llm.invoke(messages)
             
             return {
@@ -242,13 +238,10 @@ async def main():
     """
     # Initialize research system
     research_system = AdvancedResearchSystem()
-    
-    # Example queries
     queries = [
         "Bashar al-Assad current location",
     ]
     
-    # Perform research for each query
     for query in queries:
         print(f"\n--- Researching: {query} ---")
         results = await research_system.advanced_research_workflow(query)
